@@ -1,0 +1,44 @@
+--- lib.php	2012-08-08 08:19:02.405200951 +0500
++++ lib.php	2012-08-08 08:18:10.000000000 +0500
+@@ -3686,6 +3686,41 @@ function assignment_extend_settings_navi
+     }
+ }
+ 
++function course_material($course){
++        global $CFG,$DB;
++        require_once($CFG->libdir.'/filelib.php');
++
++        $fs = get_file_storage();
++        $filename = str_replace(' ', '_', clean_filename($course->shortname.".zip")); //name of new zip file.
++        $file_records= $DB->get_records_sql("SELECT f.*
++                                                FROM mdl_modules m, mdl_course_modules cm, mdl_context c, mdl_files f
++                                                WHERE cm.course =$course->id
++                                                AND cm.module = m.id
++                                                AND cm.id = c.instanceid
++                                                AND c.id = f.contextid
++                                                AND m.visible =1
++                                                AND f.filename != '.' and f.component='mod_resource'");
++        $result = array();
++        foreach ($file_records as $file_record) {
++
++                $result[$file_record->pathnamehash] = $fs->get_file_instance($file_record);
++                $files=$result;
++                foreach ($files as $file) {
++                        //get files new name.
++                        $fileext = strstr($file->get_filename(), '.');
++                        $fileoriginal = str_replace($fileext, '', $file->get_filename());
++                        $fileforzipname =  clean_filename($fileoriginal."_".$fileext);
++                        $filesforzipping[$fileforzipname] = $file;
++                }
++
++        }
++//print_r($filesforzipping);
++        if ($zipfile = assignment_pack_files($filesforzipping)) {
++                send_temp_file($zipfile, $filename); //send file and delete after sending.
++        }
++}
++
++
+ /**
+  * generate zip file from array of given files
+  * @param array $filesforzipping - array of files to pass into archive_to_pathname
